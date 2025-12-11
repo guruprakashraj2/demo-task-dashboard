@@ -4,7 +4,7 @@
 
 🔗 https://demo-task-dashboard.onrender.com/
 
-🗂 GitHub:
+🗂 GitHub: https://github.com/guruprakashraj2/demo-task-dashboard
 
 A simple Task Management Web Application built as part of a Full-Stack Developer assignment for Social Booster Media.
 
