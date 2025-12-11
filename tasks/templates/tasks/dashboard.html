@@ -54,7 +54,9 @@ async function loadTasks() {
         const pendingTasks = data.filter(t => !t.completed);
 
         // Chart
-        new Chart(document.getElementById('taskChart'), {
+        const ctx = document.getElementById('taskChart').getContext('2d');
+        if(window.taskChart) window.taskChart.destroy();
+        window.taskChart = new Chart(ctx, {
             type:'bar',
             data:{
                 labels:['Completed','Pending'],
@@ -107,20 +109,25 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
     loadTasks();
 });
 
-async function completeTask(id){
-    await fetch(`/api/tasks/${id}/`, {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({completed:true})
-    });
-    loadTasks();
+async function completeTask(id) {
+    try {
+        const response = await fetch(`/api/tasks/${id}/`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({completed:true})
+        });
+        if(response.ok) loadTasks();
+        else alert("Failed to complete task");
+    } catch(e) { console.error(e); }
 }
 
-async function deleteTask(id){
-    if(confirm('Delete this task?')){
-        await fetch(`/api/tasks/${id}/`, {method:'DELETE'});
-        loadTasks();
-    }
+async function deleteTask(id) {
+    if(!confirm("Delete this task?")) return;
+    try {
+        const response = await fetch(`/api/tasks/${id}/`, { method:'DELETE' });
+        if(response.ok) loadTasks();
+        else alert("Failed to delete task");
+    } catch(e) { console.error(e); }
 }
 
 async function loadUser(){
