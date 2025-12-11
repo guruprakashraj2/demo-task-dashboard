@@ -8,14 +8,14 @@ import requests
 
 # CRUD API for Tasks
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
+    queryset = Task.objects.all().order_by('-created_at')
     serializer_class = TaskSerializer
 
 # Dashboard view
 def dashboard(request):
     return render(request, 'tasks/dashboard.html')
 
-# User API (replaces cat_fact_api)
+# User API
 @api_view(['GET'])
 def user_api(request):
     try:
