@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import TaskViewSet, dashboard, user_api
+from demo_project import settings
 
 # Router for CRUD operations
 router = DefaultRouter()

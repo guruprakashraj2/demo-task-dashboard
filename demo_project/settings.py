@@ -32,7 +32,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'demo.urls'
+ROOT_URLCONF = "demo_project.urls"  # ✅
+
 
 TEMPLATES = [
     {
@@ -49,7 +50,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'demo.wsgi.application'
+WSGI_APPLICATION = 'demo_project.wsgi.application'
+
 
 # PostgreSQL database
 DATABASES = {
