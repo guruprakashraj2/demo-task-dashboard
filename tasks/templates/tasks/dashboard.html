@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -27,19 +28,19 @@
 <div id="dashboardContainer">
     <h1>Task Dashboard</h1>
 
-    <!-- ADD TASK FORM -->
+    <!-- CSRF token -->
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
     <h2>Add New Task</h2>
     <form id="taskForm" style="text-align:center; margin-bottom:20px;">
         <input type="text" id="taskTitle" placeholder="Task Title" required>
         <button type="submit">Add Task</button>
     </form>
 
-    <!-- CHART -->
     <div id="chartContainer">
         <canvas id="taskChart" width="400" height="200"></canvas>
     </div>
 
-    <!-- PENDING & COMPLETED TASKS -->
     <h2>Pending Tasks</h2>
     <ul id="pendingTasks"></ul>
 
@@ -50,107 +51,97 @@
 </div>
 
 <script>
+const csrftoken = document.getElementById('csrfToken').value;
+
+// Load all tasks
 async function loadTasks() {
     try {
         const data = await fetch('/api/tasks/').then(res => res.json());
         const completedTasks = data.filter(t => t.completed);
         const pendingTasks = data.filter(t => !t.completed);
 
-        // ---------- Chart ----------
+        // Chart
         new Chart(document.getElementById('taskChart'), {
             type:'bar',
             data:{
                 labels:['Completed','Pending'],
-                datasets:[{
-                    label:'# of Tasks',
-                    data:[completedTasks.length,pendingTasks.length],
-                    backgroundColor:['#4caf50','#f44336']
-                }]
+                datasets:[{label:'# of Tasks', data:[completedTasks.length,pendingTasks.length], backgroundColor:['#4caf50','#f44336']}]
             },
-            options:{
-                plugins:{legend:{display:false}},
-                scales:{y:{beginAtZero:true}}
-            }
+            options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
         });
 
-        // ---------- Pending Tasks ----------
+        // Pending list
         const pendingList = document.getElementById('pendingTasks');
         pendingList.innerHTML = '';
         pendingTasks.forEach(t => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${t.title}</span>
-                <div>
-                    <button class="complete-btn" onclick="completeTask(${t.id})">Complete</button>
-                    <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
-                </div>`;
+            li.innerHTML = `<span>${t.title}</span>
+                            <div>
+                                <button class="complete-btn" onclick="completeTask(${t.id})">Complete</button>
+                                <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+                            </div>`;
             li.classList.add('pending');
             pendingList.appendChild(li);
         });
         if(pendingTasks.length===0) pendingList.innerHTML="<li>No pending tasks!</li>";
 
-        // ---------- Completed Tasks ----------
+        // Completed list
         const completedList = document.getElementById('completedTasks');
         completedList.innerHTML = '';
         completedTasks.forEach(t => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${t.title}</span>
-                <div>
-                    <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
-                </div>`;
+            li.innerHTML = `<span>${t.title}</span>
+                            <div>
+                                <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+                            </div>`;
             li.classList.add('completed');
             completedList.appendChild(li);
         });
         if(completedTasks.length===0) completedList.innerHTML="<li>No completed tasks!</li>";
 
-    } catch(e) {
-        console.error("Error loading tasks:", e);
-    }
+    } catch(e) { console.error(e); }
 }
 
-// ---------- Add Task ----------
-document.getElementById('taskForm').addEventListener('submit', async (e) => {
+// Add Task
+document.getElementById('taskForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const title = document.getElementById('taskTitle').value;
-    if(!title) return alert("Task title cannot be empty");
-
+    const title=document.getElementById('taskTitle').value;
     await fetch('/api/tasks/', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({title:title, description:'', completed:false})
+        method:'POST',
+        headers:{'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+        body:JSON.stringify({title:title, description:'', completed:false})
     });
-
-    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskTitle').value='';
     loadTasks();
 });
 
-// ---------- Complete Task ----------
+// Complete Task
 async function completeTask(id) {
     await fetch(`/api/tasks/${id}/`, {
-        method: 'PATCH',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({completed:true})
+        method:'PATCH',
+        headers:{'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+        body:JSON.stringify({completed:true})
     });
     loadTasks();
 }
 
-// ---------- Delete Task ----------
+// Delete Task
 async function deleteTask(id) {
     if(confirm('Are you sure you want to delete this task?')) {
-        await fetch(`/api/tasks/${id}/`, {method:'DELETE'});
+        await fetch(`/api/tasks/${id}/`, {
+            method:'DELETE',
+            headers:{'X-CSRFToken': csrftoken}
+        });
         loadTasks();
     }
 }
 
-// ---------- Load User ----------
-async function loadUser() {
-    try {
+// Load User Info
+async function loadUser(){
+    try{
         const data = await fetch('/api/user/').then(res=>res.json());
         document.getElementById('userInfo').textContent = `User Info: ${data.name} (${data.email})`;
-    } catch(e) {
-        console.error("Error loading user:", e);
-    }
+    }catch(e){ console.error(e);}
 }
 
 loadTasks();
