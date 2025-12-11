@@ -5,223 +5,133 @@
     <title>Task Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f9;
-        }
-
-        h1, h2 {
-            text-align: center;
-            color: #333;
-        }
-
-        #dashboardContainer {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-        }
-
-        #chartContainer {
-            width: 80%;
-            margin: 30px auto;
-        }
-
-        ul {
-            list-style: none;
-            padding-left: 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        li {
-            flex: 1 1 200px;
-            background: #f9f9f9;
-            margin: 5px;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
-            font-weight: 500;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        li:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.12);
-        }
-
-        .completed {
-            border-left: 5px solid #4caf50;
-            background-color: #e6f4ea;
-            color: #2e7d32;
-        }
-
-        .pending {
-            border-left: 5px solid #f44336;
-            background-color: #fdecea;
-            color: #c62828;
-        }
-
-        #userInfo {
-            text-align: center;
-            margin-top: 30px;
-            font-style: italic;
-            font-size: 1.1em;
-            color: #555;
-        }
-
-        #taskForm input, #taskForm button {
-            padding: 10px;
-            margin: 6px;
-            font-size: 1em;
-        }
-
-        #taskForm button {
-            background: #4caf50;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-        }
-
-        #taskForm button:hover {
-            background: #43a047;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background:#f4f7f9; margin:0; padding:0; }
+        h1,h2 { text-align:center; color:#333; }
+        #dashboardContainer { max-width:900px; margin:40px auto; padding:20px; background:#fff; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.1);}
+        #chartContainer { width:80%; margin:30px auto; }
+        ul { list-style:none; padding:0; display:flex; flex-wrap:wrap; gap:15px; justify-content:center; }
+        li { flex:1 1 200px; background:#f9f9f9; margin:5px; padding:15px 20px; border-radius:10px; box-shadow:0 3px 6px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .completed { border-left:5px solid #4caf50; background:#e6f4ea; color:#2e7d32; }
+        .pending { border-left:5px solid #f44336; background:#fdecea; color:#c62828; }
+        button { padding:5px 10px; border:none; border-radius:6px; cursor:pointer; }
+        .complete-btn { background:#4caf50; color:#fff; }
+        .delete-btn { background:#f44336; color:#fff; }
+        #taskForm input,#taskForm button { padding:10px; margin:6px; font-size:1em; }
+        #taskForm button { background:#4caf50; color:white; border:none; border-radius:8px; cursor:pointer; }
+        #taskForm button:hover { background:#43a047; }
+        #userInfo { text-align:center; margin-top:30px; font-style:italic; color:#555; }
     </style>
 </head>
 <body>
-    <div id="dashboardContainer">
-        <h1>Task Dashboard</h1>
+<div id="dashboardContainer">
+    <h1>Task Dashboard</h1>
 
-        <!-- ADD TASK FORM -->
-        <h2>Add New Task</h2>
-        <form id="taskForm" style="text-align:center; margin-bottom:20px;">
-            <input type="text" id="taskTitle" placeholder="Task Title" required>
-            <button type="submit">Add Task</button>
-        </form>
+    <h2>Add New Task</h2>
+    <form id="taskForm" style="text-align:center; margin-bottom:20px;">
+        <input type="text" id="taskTitle" placeholder="Task Title" required>
+        <button type="submit">Add Task</button>
+    </form>
 
-        <!-- CHART -->
-        <div id="chartContainer">
-            <canvas id="taskChart" width="400" height="200"></canvas>
-        </div>
-
-        <h2>Pending Tasks</h2>
-        <ul id="pendingTasks"></ul>
-
-        <h2>Completed Tasks</h2>
-        <ul id="completedTasks"></ul>
-
-        <div id="userInfo"></div>
+    <div id="chartContainer">
+        <canvas id="taskChart" width="400" height="200"></canvas>
     </div>
 
-    <script>
-        // ---------- Load Tasks From API ----------
-        async function loadTasks() {
-            try {
-                let data = await fetch('/api/tasks/')
-                    .then(res => res.json());
+    <h2>Pending Tasks</h2>
+    <ul id="pendingTasks"></ul>
 
-                const completedTasks = data.filter(t => t.completed);
-                const pendingTasks = data.filter(t => !t.completed);
+    <h2>Completed Tasks</h2>
+    <ul id="completedTasks"></ul>
 
-                // ---------- Chart ----------
-                new Chart(document.getElementById('taskChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['Completed', 'Pending'],
-                        datasets: [{
-                            label: '# of Tasks',
-                            data: [completedTasks.length, pendingTasks.length],
-                            backgroundColor: ['#4caf50', '#f44336']
-                        }]
-                    },
-                    options: {
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
+    <div id="userInfo"></div>
+</div>
 
-                // ---------- Pending List ----------
-                const pendingList = document.getElementById("pendingTasks");
-                pendingList.innerHTML = "";
-                pendingTasks.forEach(t => {
-                    const li = document.createElement("li");
-                    li.innerHTML = `<i class="fa-solid fa-clock"></i> ${t.title}`;
-                    li.classList.add("pending");
-                    pendingList.appendChild(li);
-                });
-                if (pendingTasks.length === 0)
-                    pendingList.innerHTML = "<li>No pending tasks!</li>";
+<script>
+async function loadTasks() {
+    try {
+        const data = await fetch('/api/tasks/').then(res => res.json());
+        const completedTasks = data.filter(t => t.completed);
+        const pendingTasks = data.filter(t => !t.completed);
 
-                // ---------- Completed List ----------
-                const completedList = document.getElementById("completedTasks");
-                completedList.innerHTML = "";
-                completedTasks.forEach(t => {
-                    const li = document.createElement("li");
-                    li.innerHTML = `<i class="fa-solid fa-check"></i> ${t.title}`;
-                    li.classList.add("completed");
-                    completedList.appendChild(li);
-                });
-                if (completedTasks.length === 0)
-                    completedList.innerHTML = "<li>No completed tasks!</li>";
-
-            } catch (error) {
-                console.error("Error loading tasks:", error);
-            }
-        }
-
-        // ---------- Add Task (POST) ----------
-        document.getElementById("taskForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const title = document.getElementById("taskTitle").value;
-
-            try {
-                await fetch("/api/tasks/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        title: title,
-                        description: "",
-                        completed: false
-                    })
-                });
-
-                alert("Task added!");
-                document.getElementById("taskTitle").value = "";
-                loadTasks(); // refresh UI
-
-            } catch (error) {
-                console.error("Error adding task:", error);
-            }
+        // Chart
+        new Chart(document.getElementById('taskChart'), {
+            type:'bar',
+            data:{
+                labels:['Completed','Pending'],
+                datasets:[{label:'# of Tasks', data:[completedTasks.length,pendingTasks.length], backgroundColor:['#4caf50','#f44336']}]
+            },
+            options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
         });
 
-        // ---------- Load External User API ----------
-        async function loadUser() {
-            try {
-                const data = await fetch('/api/user/').then(res => res.json());
-                document.getElementById('userInfo').textContent =
-                    `User Info: ${data.name} (${data.email})`;
-            } catch (err) {
-                console.error("Error fetching user:", err);
-            }
-        }
+        // Pending list
+        const pendingList = document.getElementById('pendingTasks');
+        pendingList.innerHTML = '';
+        pendingTasks.forEach(t => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${t.title}</span>
+                            <div>
+                                <button class="complete-btn" onclick="completeTask(${t.id})">Complete</button>
+                                <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+                            </div>`;
+            li.classList.add('pending');
+            pendingList.appendChild(li);
+        });
+        if(pendingTasks.length===0) pendingList.innerHTML="<li>No pending tasks!</li>";
 
+        // Completed list
+        const completedList = document.getElementById('completedTasks');
+        completedList.innerHTML = '';
+        completedTasks.forEach(t => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${t.title}</span>
+                            <div>
+                                <button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button>
+                            </div>`;
+            li.classList.add('completed');
+            completedList.appendChild(li);
+        });
+        if(completedTasks.length===0) completedList.innerHTML="<li>No completed tasks!</li>";
+
+    } catch(e) { console.error(e); }
+}
+
+document.getElementById('taskForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const title=document.getElementById('taskTitle').value;
+    await fetch('/api/tasks/', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({title:title, description:'', completed:false})
+    });
+    document.getElementById('taskTitle').value='';
+    loadTasks();
+});
+
+async function completeTask(id){
+    await fetch(`/api/tasks/${id}/`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({completed:true})
+    });
+    loadTasks();
+}
+
+async function deleteTask(id){
+    if(confirm('Delete this task?')){
+        await fetch(`/api/tasks/${id}/`, {method:'DELETE'});
         loadTasks();
-        loadUser();
-    </script>
+    }
+}
+
+async function loadUser(){
+    try{
+        const data = await fetch('/api/user/').then(res=>res.json());
+        document.getElementById('userInfo').textContent = `User Info: ${data.name} (${data.email})`;
+    }catch(e){ console.error(e);}
+}
+
+loadTasks();
+loadUser();
+</script>
 </body>
 </html>
