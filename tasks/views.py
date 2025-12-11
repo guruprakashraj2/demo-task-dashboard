@@ -16,17 +16,31 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
 
-    # FIXED: PATCH / COMPLETE BUTTON NOW WORKS
+    # FORCE PATCH TO UPDATE
+    def patch(self, request, *args, **kwargs):
+        task = self.get_object()
+        serializer = self.get_serializer(
+            task, data=request.data, partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    # Also override partial_update (used by DRF UI PATCH)
     def partial_update(self, request, *args, **kwargs):
         task = self.get_object()
+        serializer = self.get_serializer(
+            task, data=request.data, partial=True
+        )
 
-        # Only update fields provided
-        for field, value in request.data.items():
-            setattr(task, field, value)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
 
-        task.save()
-        serializer = self.get_serializer(task)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=400)
 
 
 def dashboard(request):
@@ -36,7 +50,7 @@ def dashboard(request):
 @api_view(['GET'])
 def user_api(request):
     try:
-        response = requests.get("https://jsonplaceholder.typicode.com/users/1")
+        response = requests.get('https://jsonplaceholder.typicode.com/users/1')
         return Response(response.json())
     except Exception as e:
         return Response({"error": str(e)})
