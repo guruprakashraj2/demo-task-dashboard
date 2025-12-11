@@ -5,6 +5,7 @@
     <title>Task Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -81,12 +82,38 @@
             font-size: 1.1em;
             color: #555;
         }
+
+        #taskForm input, #taskForm button {
+            padding: 10px;
+            margin: 6px;
+            font-size: 1em;
+        }
+
+        #taskForm button {
+            background: #4caf50;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #taskForm button:hover {
+            background: #43a047;
+        }
     </style>
 </head>
 <body>
     <div id="dashboardContainer">
         <h1>Task Dashboard</h1>
 
+        <!-- ADD TASK FORM -->
+        <h2>Add New Task</h2>
+        <form id="taskForm" style="text-align:center; margin-bottom:20px;">
+            <input type="text" id="taskTitle" placeholder="Task Title" required>
+            <button type="submit">Add Task</button>
+        </form>
+
+        <!-- CHART -->
         <div id="chartContainer">
             <canvas id="taskChart" width="400" height="200"></canvas>
         </div>
@@ -101,23 +128,17 @@
     </div>
 
     <script>
-        // Fetch and display tasks
+        // ---------- Load Tasks From API ----------
         async function loadTasks() {
             try {
-                let data = await fetch('/api/tasks/').then(res => res.json());
-
-                if (data.length === 0) {
-                    data = [
-                        {title:'Demo Task', completed:false},
-                        {title:'Submit Code', completed:true}
-                    ];
-                }
+                let data = await fetch('/api/tasks/')
+                    .then(res => res.json());
 
                 const completedTasks = data.filter(t => t.completed);
                 const pendingTasks = data.filter(t => !t.completed);
 
-                // Chart
-                new Chart(document.getElementById('taskChart').getContext('2d'), {
+                // ---------- Chart ----------
+                new Chart(document.getElementById('taskChart'), {
                     type: 'bar',
                     data: {
                         labels: ['Completed', 'Pending'],
@@ -127,44 +148,76 @@
                             backgroundColor: ['#4caf50', '#f44336']
                         }]
                     },
-                    options: { 
-                        plugins: { legend: { display: false }, title: { display: true, text: 'Tasks Overview' } },
+                    options: {
+                        plugins: { legend: { display: false } },
                         scales: { y: { beginAtZero: true } }
                     }
                 });
 
-                // Pending list
-                const pendingList = document.getElementById('pendingTasks');
-                pendingList.innerHTML = '';
+                // ---------- Pending List ----------
+                const pendingList = document.getElementById("pendingTasks");
+                pendingList.innerHTML = "";
                 pendingTasks.forEach(t => {
-                    const li = document.createElement('li');
+                    const li = document.createElement("li");
                     li.innerHTML = `<i class="fa-solid fa-clock"></i> ${t.title}`;
-                    li.classList.add('pending');
+                    li.classList.add("pending");
                     pendingList.appendChild(li);
                 });
-                if (pendingTasks.length === 0) pendingList.innerHTML = '<li>No pending tasks!</li>';
+                if (pendingTasks.length === 0)
+                    pendingList.innerHTML = "<li>No pending tasks!</li>";
 
-                // Completed list
-                const completedList = document.getElementById('completedTasks');
-                completedList.innerHTML = '';
+                // ---------- Completed List ----------
+                const completedList = document.getElementById("completedTasks");
+                completedList.innerHTML = "";
                 completedTasks.forEach(t => {
-                    const li = document.createElement('li');
+                    const li = document.createElement("li");
                     li.innerHTML = `<i class="fa-solid fa-check"></i> ${t.title}`;
-                    li.classList.add('completed');
+                    li.classList.add("completed");
                     completedList.appendChild(li);
                 });
-                if (completedTasks.length === 0) completedList.innerHTML = '<li>No completed tasks!</li>';
+                if (completedTasks.length === 0)
+                    completedList.innerHTML = "<li>No completed tasks!</li>";
 
-            } catch (err) { console.error('Error fetching tasks:', err); }
+            } catch (error) {
+                console.error("Error loading tasks:", error);
+            }
         }
 
-        // Fetch and display external API (JSONPlaceholder user)
+        // ---------- Add Task (POST) ----------
+        document.getElementById("taskForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById("taskTitle").value;
+
+            try {
+                await fetch("/api/tasks/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: title,
+                        description: "",
+                        completed: false
+                    })
+                });
+
+                alert("Task added!");
+                document.getElementById("taskTitle").value = "";
+                loadTasks(); // refresh UI
+
+            } catch (error) {
+                console.error("Error adding task:", error);
+            }
+        });
+
+        // ---------- Load External User API ----------
         async function loadUser() {
             try {
                 const data = await fetch('/api/user/').then(res => res.json());
                 document.getElementById('userInfo').textContent =
                     `User Info: ${data.name} (${data.email})`;
-            } catch(err) { console.error('Error fetching user:', err); }
+            } catch (err) {
+                console.error("Error fetching user:", err);
+            }
         }
 
         loadTasks();

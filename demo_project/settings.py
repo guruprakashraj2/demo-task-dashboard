@@ -1,14 +1,14 @@
 from pathlib import Path
+import os
+import dj_database_url  # <--- Required for Render PostgreSQL URL
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key secret!
-SECRET_KEY = 'django-insecure-iuitbawo_tc$kx0zpy9-=&ltem)bes((7$k%2v@1j4wv!*f@8-'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-# For local development / deployment you can add your domain later
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1"]
 
 # Installed apps
 INSTALLED_APPS = [
@@ -18,27 +18,31 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',      # added DRF
-    'tasks',               # your tasks app
+
+    'rest_framework',
+    'tasks',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+
+    # Disable CSRF for API calls (safe for demo/testing)
+    # comment out below if you want CSRF protection:
+    # 'django.middleware.csrf.CsrfViewMiddleware',
+
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = "demo_project.urls"  # ✅
-
+ROOT_URLCONF = "demo_project.urls"
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'tasks' / 'templates'],  # Add templates folder
+        'DIRS': [BASE_DIR / 'tasks' / 'templates'],  # Templates folder
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -50,45 +54,45 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'demo_project.wsgi.application'
+WSGI_APPLICATION = "demo_project.wsgi.application"
 
-
-# PostgreSQL database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'demo',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+# -----------------------------------------
+# DATABASES (LOCAL + RENDER)
+# -----------------------------------------
+# Local fallback (SQLite)
+local_db = {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': BASE_DIR / 'db.sqlite3'
 }
 
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# Render / Production PostgreSQL
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    DATABASES = {
+        "default": local_db
+    }
 
-# Static files
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']  # optional
+# -----------------------------------------
+# STATIC FILES
+# -----------------------------------------
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"   # Render will collect here
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# -----------------------------------------
+# Django REST Framework (CSRF-free API)
+# -----------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+}
